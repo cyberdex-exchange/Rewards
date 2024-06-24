@@ -33,12 +33,14 @@ contract Rewards {
     uint256 tokenPerSec;
     uint256 rewardPerTokenStored;
     uint256 lastUpdateTime;
-    uint256 periodFinish;
+    uint256 public periodFinish;
+    
 
     address public OWNER;
     address public immutable STAKE_TOKEN;
     address public immutable REWARD_TOKEN;
     uint256 public immutable WITHDRAW_PERIOD;
+    uint256 public immutable VAULT_LIFE_TIME;
 
     mapping(bytes32 => Stake) public stakes;
     mapping(address => bytes32) public userStakeHead;
@@ -62,19 +64,21 @@ contract Rewards {
         address rewardToken,
         uint256 withdrawPeriod,
         uint256 rewards,
-        address owner
+        address owner,
+        uint256 vaultLifetime
     ) {
         STAKE_TOKEN = stakeToken;
         REWARD_TOKEN = rewardToken;
         WITHDRAW_PERIOD = withdrawPeriod;
-        tokenPerSec = rewards / 365 days;
+        tokenPerSec = rewards / vaultLifetime;
+        VAULT_LIFE_TIME = vaultLifetime;
         OWNER = owner;
     }
 
     function initialize() external {
         if (msg.sender != OWNER) revert NotOwner();
         stakeActive = true;
-        periodFinish = block.timestamp + 365 days;
+        periodFinish = block.timestamp + VAULT_LIFE_TIME;
         uint256 amount = IERC20(REWARD_TOKEN).allowance(msg.sender, address(this));
         IERC20(REWARD_TOKEN).transferFrom(msg.sender, address(this), amount);
     }
@@ -124,7 +128,7 @@ contract Rewards {
         while (head != NULL) {
             Stake memory _stake = stakes[head];
 
-            if (_stake.unlockTime <= block.timestamp || block.timestamp > periodFinish) {
+            if (_stake.unlockTime <= block.timestamp || periodFinish < block.timestamp ) {
                 delete stakes[head];
                 unstakedAmount += _stake.amount;
             } else {

@@ -20,6 +20,7 @@ contract RewardsTest is Test {
     CYDX_TOKEN public CYDX;
     uint256 public WITHDRAW_PERIOD;
     uint256 public TOTAL_REWARDS;
+    uint256 public VAULT_LIFE_TIME;
 
     struct Stake {
         uint256 amount;
@@ -31,12 +32,12 @@ contract RewardsTest is Test {
         CYDX = new CYDX_TOKEN("CYDX", "CYDX");
         WITHDRAW_PERIOD = 180 days;
         TOTAL_REWARDS = 1_000_000e18;
-        uint256 vaultLifetime = 365 days;
+        VAULT_LIFE_TIME = 365 days;
 
-        rewards = new Rewards(address(CYDX), address(CYDX), WITHDRAW_PERIOD, TOTAL_REWARDS, address(this), vaultLifetime);
+        rewards = new Rewards(address(CYDX), address(CYDX), WITHDRAW_PERIOD, TOTAL_REWARDS, address(this), VAULT_LIFE_TIME);
 
         CYDX.approve(address(rewards), TOTAL_REWARDS);
-        rewards.initialize(true);
+        rewards.initialize();
     }
 
     function test_setup() public {
@@ -128,7 +129,7 @@ contract RewardsTest is Test {
         }
 
         // Unstake
-        vm.warp(block.timestamp + WITHDRAW_PERIOD + 1  - (offset * timeGapBetweenStakes));
+        vm.warp(block.timestamp + WITHDRAW_PERIOD  - (offset * timeGapBetweenStakes));
         uint256 reward = rewards.getClaimAmount(address(this));
         rewards.unstake();
         assertEq(rewards.userStaked(address(this)), offset * amount);
